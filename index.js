@@ -60,7 +60,7 @@ async function fetchTasks() {
  * @param {object} task The Jira task object.
  */
 function sendTelegramNotification(task) {
-  const taskUrl = `https://${JIRA_HOST}/jira/software/c/projects/TB/boards/66?modal=detail&selectedIssue=${task.key}`;
+  const taskUrl = `${JIRA_HOST}/jira/software/c/projects/TB/boards/66?modal=detail&selectedIssue=${task.key}`;
 
   let mess = `
 *${task.fields.summary}*`;
