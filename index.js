@@ -1,7 +1,6 @@
-
-require('dotenv').config();
-const { Version3Client } = require('jira.js');
-const { Telegraf } = require('telegraf');
+import 'dotenv/config';
+import { Version3Client } from 'jira.js';
+import { Telegraf } from 'telegraf';
 
 // --- Configuration ---
 const {
@@ -61,24 +60,26 @@ async function fetchTasks() {
  * @param {object} task The Jira task object.
  */
 function sendTelegramNotification(task) {
-  // const taskUrl = `https://${JIRA_HOST}/browse/${task.key}`;
   const taskUrl = `https://${JIRA_HOST}/jira/software/c/projects/TB/boards/66?modal=detail&selectedIssue=${task.key}`;
 
-  let mess = `\n*${task.summary}*`;
-  mess += `\nОт ${task.creator ? task.creator.displayName : "invisible human"}`;
+  let mess = `
+*${task.fields.summary}*`;
+  mess += `
+От ${task.fields.creator ? task.fields.creator.displayName : "invisible human"}`;
 
-  if (Array.isArray(task.labels) && task.labels.length) {
-    mess += `\nТэги: ${task.labels.join(", ")}`;
+  if (Array.isArray(task.fields.labels) && task.fields.labels.length) {
+    mess += `
+Тэги: ${task.fields.labels.join(", ")}`;
   }
 
-  if (task.priority) {
-    mess += `\nПриоритет ${task.priority.name}`;
+  if (task.fields.priority) {
+    mess += `
+Приоритет ${task.fields.priority.name}`;
   }
 
-  msg += "\n" + taskUrl;
+  mess += "\n" + taskUrl;
 
-  bot.telegram.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'Markdown' })
-    // .then(() => console.log(`Notification sent for task ${task.key}`))
+  bot.telegram.sendMessage(TELEGRAM_CHAT_ID, mess, { parse_mode: 'Markdown' })
     .catch(err => console.error('Error sending Telegram message:', err));
 }
 
@@ -86,20 +87,16 @@ function sendTelegramNotification(task) {
  * Main function to check for new tasks and send notifications.
  */
 async function checkAndNotify() {
-  // console.log('Checking for new tasks...');
   const tasks = await fetchTasks();
 
   if (isFirstRun) {
-    // On the first run, we populate the 'seen' list without notifying
     tasks.forEach(task => seenTaskIds.add(task.id));
-    // console.log(`Initial run: Found ${tasks.length} tasks. They will not be notified.`);
     isFirstRun = false;
     return;
   }
 
   for (const task of tasks) {
     if (!seenTaskIds.has(task.id)) {
-      // console.log(`New task found: ${task.key} - ${task.fields.summary}`);
       sendTelegramNotification(task);
       seenTaskIds.add(task.id);
     }
@@ -110,14 +107,11 @@ async function checkAndNotify() {
 console.log('Starting Jira Task Notifier...');
 console.log(`Watching board "${JIRA_BOARD_NAME}" for tasks in status "${JIRA_STATUS_NAME}"`);
 
-// Check immediately on start, then set an interval
 checkAndNotify();
 setInterval(checkAndNotify, parseInt(CHECK_INTERVAL_MS, 10) || 60000);
 
-// Optional: A simple command to check bot status
 bot.start((ctx) => ctx.reply('Jira Notifier Bot is running.'));
 bot.launch();
 
-// Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
